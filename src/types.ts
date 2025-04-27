@@ -49,4 +49,4 @@ export interface CustomSignOnPayload {
 export interface CustomSignOnRequest {
   method: SignOnMethod;
   payload: CustomSignOnPayload;
-} 
+}

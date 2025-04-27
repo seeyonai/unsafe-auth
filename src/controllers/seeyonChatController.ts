@@ -1,0 +1,114 @@
+import querystring from 'querystring';
+import axios from 'axios';
+import { Request, Response } from 'express';
+
+require('dotenv').config();
+
+const clientId = process.env.SEEYON_CHAT_CLIENT_ID;
+const clientSecret = process.env.SEEYON_CHAT_CLIENT_SECRET;
+const seeyonChatBaseUrl = process.env.SEEYON_CHAT_BASE_URL || 'http://localhost:3001/api/oauth2';
+
+if (!clientId || !clientSecret) {
+  throw new Error('Missing client ID or client secret');
+}
+
+const config = {
+  clientId,
+  clientSecret,
+  redirectUri: 'http://localhost:4423/api/oauth/seeyon-chat/callback',
+  scope: 'name email'
+};
+
+const stateMap = new Map<string, string>();
+
+export const seeyonChat = (req: Request, res: Response) => {
+  // Get `state` from req query
+  const state = req.query.state as string;
+  const callbackUrl = req.query.callback as string;
+
+  console.log('[seeyonChat] Received state:', state);
+  console.log('[seeyonChat] Received callback URL:', callbackUrl);
+
+  if (!state) {
+    return res.status(400).send('State parameter is required');
+  }
+
+  // Ensure `state` is unique
+  if (stateMap.has(state)) {
+    return res.status(400).send('State parameter must be unique');
+  }
+
+  stateMap.set(state, callbackUrl);
+
+  console.log('[seeyonChat] Redirecting to Seeyon Chat for authentication');
+
+  const authUrl = `${seeyonChatBaseUrl}/authorize?` +
+    querystring.stringify({
+      client_id: config.clientId,
+      redirect_uri: config.redirectUri,
+      scope: config.scope,
+      state,
+    });
+  res.redirect(authUrl);
+};
+
+export const seeyonChatCallback = async (req: Request, res: Response) => {
+  const { code, state, error } = req.query;
+
+  if (error) {
+    return res.send(`Error: ${error}`);
+  }
+
+  if (!state || typeof state !== 'string' || !stateMap.has(state)) {
+    return res.status(400).send('Invalid state parameter');
+  }
+
+  try {
+    // Exchange code for token
+    const tokenResponse = await axios.post(
+      `${seeyonChatBaseUrl}/token`,
+      {
+        client_id: config.clientId,
+        client_secret: config.clientSecret,
+        code: code,
+        redirect_uri: config.redirectUri
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      }
+    );
+
+    const accessToken = tokenResponse.data.access_token;
+
+    // Fetch user info
+    const userResponse = await axios.get(`${seeyonChatBaseUrl}/resource`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    const redirectUrl = stateMap.get(state as string);
+    if (!redirectUrl) {
+      return res.status(400).send('Invalid state parameter');
+    }
+    const query = querystring.stringify({
+      name: userResponse.data.name,
+      email: userResponse.data.email
+    });
+
+    const url = `${redirectUrl}?${query}`;
+
+    // Unset state
+    stateMap.delete(state as string);
+
+    console.log('Redirecting to:', url);
+    res.redirect(url);
+  } catch (error: any) {
+    console.error('Error:', error.response?.data || error.message);
+    res.send('Authentication failed');
+  }
+};

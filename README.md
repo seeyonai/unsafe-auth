@@ -8,6 +8,65 @@ A minimal Express server with JWT verification endpoints for custom format token
 - Strict type checking
 - CORS enabled
 
+## OAuth2 Login Agents (GitHub & Seeyon Chat)
+
+This project includes modular OAuth2 login agents for GitHub and Seeyon Chat, implemented in:
+- `src/controllers/githubController.ts`
+- `src/controllers/seeyonChatController.ts`
+
+These agents act as OAuth2 clients, allowing your application to authenticate users via external providers and receive user information securely.
+
+### How the OAuth2 Login Flow Works
+
+1. **Start OAuth2 Login**
+   - Your app redirects the user to `/api/oauth/github` or `/api/oauth/seeyon-chat` with required query parameters:
+     - `state`: A unique string for CSRF protection and session tracking.
+     - `callback`: The URL in your application to receive the authenticated user data.
+
+2. **Redirect to Provider**
+   - The login agent builds an authorization URL for the OAuth2 provider (GitHub or Seeyon Chat) and redirects the user there.
+   - The `state` and `redirect_uri` are included in the request.
+
+3. **User Grants Access**
+   - The user logs in and authorizes your app at the provider's site.
+   - The provider redirects the user back to the agent's callback endpoint (`/api/oauth/github/callback` or `/api/oauth/seeyon-chat/callback`) with a temporary `code` and the original `state`.
+
+4. **Exchange Code for Access Token**
+   - The agent exchanges the received `code` for an access token by making a server-to-server request to the provider.
+
+5. **Fetch User Info**
+   - Using the access token, the agent fetches the user's profile (and email for GitHub) from the provider's API.
+
+6. **Redirect Back to Application**
+   - The agent looks up the original `callback` URL using the `state` value.
+   - It redirects the user to this callback URL, appending the user's name and email as query parameters.
+
+### Example Flow Diagram
+
+```
+[Your App] --(state, callback)--> [Login Agent /api/oauth/github] --redirect--> [GitHub Auth]
+   <--redirect-- [GitHub Auth] <-- [Login Agent /api/oauth/github/callback] <-- [GitHub API]
+   <--redirect-- [Your App callback URL?name=...&email=...]
+```
+
+### Security Notes
+- The `state` parameter is required and must be unique per login attempt. It is used to prevent CSRF and to map the OAuth session back to the correct callback.
+- The callback URL is never sent to the OAuth provider; it is stored server-side and only used after authentication.
+
+### Endpoints
+- **GitHub:**
+  - `GET /api/oauth/github` — Initiates the OAuth2 login with GitHub.
+  - `GET /api/oauth/github/callback` — Handles the GitHub OAuth2 callback.
+- **Seeyon Chat:**
+  - `GET /api/oauth/seeyon-chat` — Initiates the OAuth2 login with Seeyon Chat.
+  - `GET /api/oauth/seeyon-chat/callback` — Handles the Seeyon Chat OAuth2 callback.
+
+### Environment Variables
+- For GitHub: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
+- For Seeyon Chat: `SEEYON_CHAT_CLIENT_ID`, `SEEYON_CHAT_CLIENT_SECRET`, `SEEYON_CHAT_BASE_URL`
+
+---
+
 ## Installation
 
 ```bash

@@ -1,7 +1,8 @@
 import express from 'express';
 import cors from 'cors';
-import jwt from 'jsonwebtoken';
 import authRoutes from './routes/authRoutes';
+import githubRoutes from './routes/githubRoutes';
+import seeyonChatRoutes from './routes/seeyonChatRoutes';
 
 const app = express();
 const PORT = 4423;
@@ -12,11 +13,13 @@ app.use(express.json());
 
 // Basic route
 app.get('/', (req, res) => {
-  res.json({ message: 'JWT Verification Server Running' });
+  res.json({ message: 'Server Running' });
 });
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/oauth', githubRoutes);
+app.use('/api/oauth', seeyonChatRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -32,4 +35,4 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 
-export default app; 
+export default app;

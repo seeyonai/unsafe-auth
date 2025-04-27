@@ -1,5 +1,7 @@
 import { Router } from 'express';
+
 import { verifyJWT, createJWT, customSignOn } from '../controllers/authController';
+
 
 const router = Router();
 
