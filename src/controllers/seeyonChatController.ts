@@ -7,21 +7,16 @@ require('dotenv').config();
 const clientId = process.env.SEEYON_CHAT_CLIENT_ID;
 const clientSecret = process.env.SEEYON_CHAT_CLIENT_SECRET;
 const seeyonChatBaseUrl = process.env.SEEYON_CHAT_BASE_URL || 'http://localhost:3001/api/oauth2';
-
-if (!clientId || !clientSecret) {
-  throw new Error('Missing client ID or client secret');
-}
-
-const config = {
-  clientId,
-  clientSecret,
-  redirectUri: 'http://localhost:4423/api/oauth/seeyon-chat/callback',
-  scope: 'name email'
-};
+const redirectUri = 'http://localhost:4423/api/oauth/seeyon-chat/callback';
+const scope = 'name email';
 
 const stateMap = new Map<string, string>();
 
 export const seeyonChat = (req: Request, res: Response) => {
+  if (!clientId || !clientSecret) {
+    throw new Error('Missing client ID or client secret');
+  }
+  
   // Get `state` from req query
   const state = req.query.state as string;
   const callbackUrl = req.query.callback as string;
@@ -44,9 +39,9 @@ export const seeyonChat = (req: Request, res: Response) => {
 
   const authUrl = `${seeyonChatBaseUrl}/authorize?` +
     querystring.stringify({
-      client_id: config.clientId,
-      redirect_uri: config.redirectUri,
-      scope: config.scope,
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      scope,
       state,
     });
   res.redirect(authUrl);
@@ -68,10 +63,10 @@ export const seeyonChatCallback = async (req: Request, res: Response) => {
     const tokenResponse = await axios.post(
       `${seeyonChatBaseUrl}/token`,
       {
-        client_id: config.clientId,
-        client_secret: config.clientSecret,
+        client_id: clientId,
+        client_secret: clientSecret,
         code: code,
-        redirect_uri: config.redirectUri
+        redirect_uri: redirectUri
       },
       {
         headers: {

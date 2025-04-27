@@ -6,21 +6,14 @@ require('dotenv').config();
 
 const clientId = process.env.GITHUB_CLIENT_ID;
 const clientSecret = process.env.GITHUB_CLIENT_SECRET;
-
-if (!clientId || !clientSecret) {
-  throw new Error('Missing client ID or client secret');
-}
-
-const config = {
-  clientId,
-  clientSecret,
-  redirectUri: 'http://localhost:4423/api/oauth/github/callback',
-  scope: 'user:email'
-};
+const redirectUri = process.env.GITHUB_REDIRECT_URI || 'http://localhost:4423/api/oauth/github/callback';
 
 const stateMap = new Map<string, string>();
 
 export const githubAuth = (req: Request, res: Response) => {
+  if (!clientId || !clientSecret) {
+    return res.status(500).send('GitHub client ID or client secret is not configured');
+  }
   // Get `state` from req query
   const state = req.query.state as string;
   const callbackUrl = req.query.callback as string;
@@ -43,15 +36,18 @@ export const githubAuth = (req: Request, res: Response) => {
 
   const authUrl = `https://github.com/login/oauth/authorize?` +
     querystring.stringify({
-      client_id: config.clientId,
-      redirect_uri: config.redirectUri,
-      scope: config.scope,
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      scope: 'user:email',
       state,
     });
   res.redirect(authUrl);
 };
 
 export const githubCallback = async (req: Request, res: Response) => {
+  if (!clientId || !clientSecret) {
+    return res.status(500).send('GitHub client ID or client secret is not configured');
+  }
   const { code, state, error } = req.query;
 
   if (error) {
@@ -67,10 +63,10 @@ export const githubCallback = async (req: Request, res: Response) => {
     const tokenResponse = await axios.post(
       'https://github.com/login/oauth/access_token',
       {
-        client_id: config.clientId,
-        client_secret: config.clientSecret,
+        client_id: clientId,
+        client_secret: clientSecret,
         code: code,
-        redirect_uri: config.redirectUri
+        redirect_uri: redirectUri
       },
       {
         headers: {
