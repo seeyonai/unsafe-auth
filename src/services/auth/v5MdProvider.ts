@@ -45,11 +45,14 @@ export function verifyV5Md5(payload: CustomSignOnPayload): {
       };
     }
     if (timeParsed < tenMinutesAgo || timeParsed > Date.now() / 1000) {
-      console.log('Token timestamp is too old or in the future', timeParsed, tenMinutesAgo, Date.now() / 1000);
-      // return {
-      //   valid: false,
-      //   error: 'Token timestamp is too old or in the future'
-      // };
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Token timestamp is too old or in the future', timeParsed, tenMinutesAgo, Date.now() / 1000);
+      } else {
+        return {
+          valid: false,
+          error: 'Token timestamp is too old or in the future'
+        };
+      }
     }
 
     // Generate expected MD5 hash
