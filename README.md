@@ -2,6 +2,8 @@
 
 A minimal Express server with JWT verification endpoints for custom format tokens.
 
+Visit [DeepWiki](https://deepwiki.com/seeyonai/unsafe-auth) for visualizations and conversational AI Assistant.
+
 ## Features
 - Express server with TypeScript
 - Custom JWT verification endpoint
