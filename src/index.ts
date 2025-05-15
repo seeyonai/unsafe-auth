@@ -3,7 +3,7 @@ import cors from 'cors';
 import authRoutes from './routes/authRoutes';
 import githubRoutes from './routes/githubRoutes';
 import seeyonChatRoutes from './routes/seeyonChatRoutes';
-
+import yikongRoutes from './routes/yikongRoutes';
 const app = express();
 const PORT = 4423;
 
@@ -20,6 +20,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/oauth', githubRoutes);
 app.use('/api/oauth', seeyonChatRoutes);
+app.use('/api/oauth', yikongRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
