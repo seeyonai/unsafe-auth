@@ -1,6 +1,7 @@
 import { SignOnMethod, CustomSignOnPayload } from '../types';
 import { generateToken } from './jwtService';
 import { verifyV5Md5 } from './auth/v5MdProvider';
+import { verifyYikong } from './auth/yikongProvider';
 
 /**
  * Verify custom sign-on request
@@ -22,6 +23,10 @@ export function verifyCustomSignOn(method: SignOnMethod, payload: CustomSignOnPa
       case SignOnMethod.V5_MD5:
         verificationResult = verifyV5Md5(payload);
         break;
+      case SignOnMethod.YIKONG:
+        verificationResult = verifyYikong(payload);
+        break;
+      
       default:
         return {
           valid: false,

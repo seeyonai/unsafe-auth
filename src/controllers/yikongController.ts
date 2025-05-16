@@ -1,8 +1,16 @@
 import querystring from 'querystring';
 import axios from 'axios';
-import { Request, Response } from 'express';
+import { Request, Response, urlencoded } from 'express';
+import { LRUCache } from 'lru-cache'
 
 require('dotenv').config({ path: ['.env.local', '.env'] });
+
+const lruOptions = {
+  max: 1000,
+  ttl: 1000 * 60 * 5, // 5 minutes
+}
+
+export const cache = new LRUCache<string, { name: string, email: string }>(lruOptions);
 
 const clientId = process.env.YIKONG_CLIENT_ID;
 const clientSecret = process.env.YIKONG_CLIENT_SECRET;
@@ -15,6 +23,8 @@ console.log('[yikongAuth] Yikong client ID:', clientId);
 console.log('[yikongAuth] Yikong client secret:', clientSecret);
 console.log('[yikongAuth] Yikong redirect URI:', redirectUri);
 
+// stateMap is used to store the state and callback URL
+// state is app name
 const stateMap = new Map<string, string>();
 
 export const yikongAuth = (req: Request, res: Response) => {
@@ -32,11 +42,6 @@ export const yikongAuth = (req: Request, res: Response) => {
     return res.status(400).send('State parameter is required');
   }
 
-  // Ensure `state` is unique
-  if (stateMap.has(state)) {
-    return res.status(400).send('State parameter must be unique');
-  }
-
   stateMap.set(state, callbackUrl);
 
   console.log('[yikongAuth] Redirecting to Yikong for authentication');
@@ -45,9 +50,10 @@ export const yikongAuth = (req: Request, res: Response) => {
     querystring.stringify({
       client_id: clientId,
       redirect_uri: redirectUri,
-    //   scope: 'user:email',
+      response_type: 'code',
       state,
     });
+  console.log('[yikongAuth] Redirecting to Yikong for authentication', authUrl);
   res.redirect(authUrl);
 };
 
@@ -81,6 +87,15 @@ export const yikongCallback = async (req: Request, res: Response) => {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
+        },
+        proxy: {
+          host: '81.70.173.87',
+          port: 6500,
+          protocol: 'http',
+          auth: {
+            username: 'abc',
+            password: 'abc',
+          }
         }
       }
     );
@@ -95,9 +110,15 @@ export const yikongCallback = async (req: Request, res: Response) => {
         // Authorization: `Bearer ${accessToken}`,
         'Accept': 'application/json'
       },
-      // proxy: {
-      //   // contact with yuzhiwei to get the proxy
-      // }
+      proxy: {
+        host: '81.70.173.87',
+        port: 6500,
+        protocol: 'http',
+        auth: {
+          username: 'abc',
+          password: 'abc',
+        }
+      }
     });
 
     console.log('userResponse', userResponse.data);
@@ -126,9 +147,10 @@ export const yikongCallback = async (req: Request, res: Response) => {
     });
 
     const url = `${redirectUrl}?${query}`;
-
-    // Unset state
-    stateMap.delete(state as string);
+    cache.set(userId as string, {
+      name: userInfo.user_name,
+      email: `${userId}@example.com`,
+    });
 
     console.log('Redirecting to:', url);
     res.redirect(url);
