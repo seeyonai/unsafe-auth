@@ -1,5 +1,5 @@
 import querystring from 'querystring';
-import axios from 'axios';
+import axios, { AxiosProxyConfig } from 'axios';
 import { Request, Response, urlencoded } from 'express';
 import { LRUCache } from 'lru-cache'
 
@@ -17,6 +17,19 @@ const clientSecret = process.env.YIKONG_CLIENT_SECRET;
 const redirectUri = process.env.YIKONG_REDIRECT_URI;
 
 const yikongBaseUrl = process.env.YIKONG_BASE_URL;
+let yikongProxyStr = process.env.YIKONG_PROXY;
+let yikongProxyOptions: AxiosProxyConfig | undefined;
+if (yikongProxyStr) {
+  try {
+    yikongProxyStr = decodeURIComponent(yikongProxyStr);
+    yikongProxyOptions = JSON.parse(yikongProxyStr);
+  } catch (error) {
+    console.error('Error parsing Yikong proxy:', error);
+    console.log('Yikong proxy:', yikongProxyStr);
+  }
+}
+
+console.log('[yikongAuth] Yikong proxy:', yikongProxyOptions);
 
 console.log('[yikongAuth] Yikong base URL:', yikongBaseUrl);
 console.log('[yikongAuth] Yikong client ID:', clientId);
@@ -88,15 +101,7 @@ export const yikongCallback = async (req: Request, res: Response) => {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        proxy: {
-          host: '81.70.173.87',
-          port: 6500,
-          protocol: 'http',
-          auth: {
-            username: 'abc',
-            password: 'abc',
-          }
-        }
+        proxy: yikongProxyOptions
       }
     );
 
@@ -110,15 +115,7 @@ export const yikongCallback = async (req: Request, res: Response) => {
         // Authorization: `Bearer ${accessToken}`,
         'Accept': 'application/json'
       },
-      proxy: {
-        host: '81.70.173.87',
-        port: 6500,
-        protocol: 'http',
-        auth: {
-          username: 'abc',
-          password: 'abc',
-        }
-      }
+      proxy: yikongProxyOptions
     });
 
     console.log('userResponse', userResponse.data);
