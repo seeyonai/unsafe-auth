@@ -5,7 +5,7 @@ import githubRoutes from './routes/githubRoutes';
 import seeyonChatRoutes from './routes/seeyonChatRoutes';
 import yikongRoutes from './routes/yikongRoutes';
 const app = express();
-const PORT = 4423;
+const PORT = process.env.PORT || 4423;
 
 // Middleware
 app.use(cors());
