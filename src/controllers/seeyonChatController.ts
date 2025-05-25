@@ -11,6 +11,7 @@ const redirectUri = 'http://localhost:4423/api/oauth/seeyon-chat/callback';
 const scope = 'name email';
 
 const stateMap = new Map<string, string>();
+const resourceMap = new Map<string, { name: string; email: string; timestamp: number }>();
 
 export const seeyonChat = (req: Request, res: Response) => {
   if (!clientId || !clientSecret) {
@@ -86,13 +87,25 @@ export const seeyonChatCallback = async (req: Request, res: Response) => {
       }
     });
 
+    // Generate a unique code for the resource data
+    const resourceCode = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    
+    // Save resource data in-memory with timestamp for cleanup
+    resourceMap.set(resourceCode, {
+      name: userResponse.data.name,
+      email: userResponse.data.email,
+      timestamp: Date.now()
+    });
+
     const redirectUrl = stateMap.get(state as string);
     if (!redirectUrl) {
       return res.status(400).send('Invalid state parameter');
     }
+
     const query = querystring.stringify({
-      name: userResponse.data.name,
-      email: userResponse.data.email
+      code: resourceCode,
+      state: state,
+      provider: 'seeyon-chat'
     });
 
     const url = `${redirectUrl}?${query}`;
@@ -106,4 +119,34 @@ export const seeyonChatCallback = async (req: Request, res: Response) => {
     console.error('Error:', error.response?.data || error.message);
     res.send('Authentication failed');
   }
+};
+
+export const seeyonChatResource = async (req: Request, res: Response) => {
+  const { code } = req.query;
+
+  if (!code || typeof code !== 'string') {
+    return res.status(400).json({ error: 'Code parameter is required' });
+  }
+
+  const resourceData = resourceMap.get(code);
+  
+  if (!resourceData) {
+    return res.status(404).json({ error: 'Resource not found or expired' });
+  }
+
+  // Check if resource is expired (24 hours)
+  const isExpired = Date.now() - resourceData.timestamp > 24 * 60 * 60 * 1000;
+  
+  if (isExpired) {
+    resourceMap.delete(code);
+    return res.status(404).json({ error: 'Resource expired' });
+  }
+
+  // Remove the resource after successful retrieval (one-time use)
+  resourceMap.delete(code);
+
+  res.json({
+    name: resourceData.name,
+    email: resourceData.email
+  });
 };

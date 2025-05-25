@@ -9,6 +9,7 @@ const clientSecret = process.env.GITHUB_CLIENT_SECRET;
 const redirectUri = process.env.GITHUB_REDIRECT_URI || 'http://localhost:4423/api/oauth/github/callback';
 
 const stateMap = new Map<string, string>();
+const resourceMap = new Map<string, { name: string; email: string; timestamp: number }>();
 
 export const githubAuth = (req: Request, res: Response) => {
   if (!clientId || !clientSecret) {
@@ -99,13 +100,25 @@ export const githubCallback = async (req: Request, res: Response) => {
     // Find primary email
     const primaryEmail = emailResponse.data.find((email: any) => email.primary && email.verified)?.email;
 
+    // Generate a unique code for the resource data
+    const resourceCode = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    
+    // Save resource data in-memory with timestamp for cleanup
+    resourceMap.set(resourceCode, {
+      name: userResponse.data.login,
+      email: primaryEmail,
+      timestamp: Date.now()
+    });
+
     const redirectUrl = stateMap.get(state as string);
     if (!redirectUrl) {
       return res.status(400).send('Invalid state parameter');
     }
+
     const query = querystring.stringify({
-      name: userResponse.data.login,
-      email: primaryEmail
+      code: resourceCode,
+      state: state,
+      provider: 'github'
     });
 
     const url = `${redirectUrl}?${query}`;
@@ -119,4 +132,34 @@ export const githubCallback = async (req: Request, res: Response) => {
     console.error('Error:', error.response?.data || error.message);
     res.send('Authentication failed');
   }
+};
+
+export const githubResource = async (req: Request, res: Response) => {
+  const { code } = req.query;
+
+  if (!code || typeof code !== 'string') {
+    return res.status(400).json({ error: 'Code parameter is required' });
+  }
+
+  const resourceData = resourceMap.get(code);
+  
+  if (!resourceData) {
+    return res.status(404).json({ error: 'Resource not found or expired' });
+  }
+
+  // Check if resource is expired (24 hours)
+  const isExpired = Date.now() - resourceData.timestamp > 24 * 60 * 60 * 1000;
+  
+  if (isExpired) {
+    resourceMap.delete(code);
+    return res.status(404).json({ error: 'Resource expired' });
+  }
+
+  // Remove the resource after successful retrieval (one-time use)
+  resourceMap.delete(code);
+
+  res.json({
+    name: resourceData.name,
+    email: resourceData.email
+  });
 };
