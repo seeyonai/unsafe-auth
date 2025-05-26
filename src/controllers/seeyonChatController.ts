@@ -60,7 +60,7 @@ export const seeyonChatCallback = async (req: Request, res: Response) => {
   }
 
   try {
-    // Exchange code for token
+    // Exchange code for access token
     const tokenResponse = await axios.post(
       `${seeyonChatBaseUrl}/token`,
       {
