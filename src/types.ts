@@ -32,7 +32,6 @@ export interface TokenCreationResponse {
 // Custom sign-on method
 export enum SignOnMethod {
   V5_MD5 = 'V5_MD5',
-  YIKONG = 'YIKONG',
 }
 
 // Custom sign-on payload
