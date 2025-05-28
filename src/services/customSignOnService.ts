@@ -1,7 +1,6 @@
 import { SignOnMethod, CustomSignOnPayload } from '../types';
 import { generateToken } from './jwtService';
 import { verifyV5Md5 } from './auth/v5MdProvider';
-import { verifyYikong } from './auth/yikongProvider';
 
 /**
  * Verify custom sign-on request
