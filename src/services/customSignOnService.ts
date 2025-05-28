@@ -23,9 +23,6 @@ export function verifyCustomSignOn(method: SignOnMethod, payload: CustomSignOnPa
       case SignOnMethod.V5_MD5:
         verificationResult = verifyV5Md5(payload);
         break;
-      case SignOnMethod.YIKONG:
-        verificationResult = verifyYikong(payload);
-        break;
       
       default:
         return {
