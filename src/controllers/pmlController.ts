@@ -49,6 +49,7 @@ export const pml = (req: Request, res: Response) => {
 
 export const pmlCallback = async (req: Request, res: Response) => {
   const { code, state, error } = req.query;
+  console.log('[pmlCallback] Entering callback with code: ' + code);
 
   if (error) {
     return res.send(`Error: ${error}`);
@@ -60,7 +61,7 @@ export const pmlCallback = async (req: Request, res: Response) => {
 
   try {
     // Exchange code for access token
-    const tokenResponse = await axios.post(
+ const tokenResponse = await axios.post(
       `${pmlBaseUrl}/idp/oauth2/getToken?` +
       querystring.stringify({
         client_id: clientId,
@@ -75,13 +76,16 @@ export const pmlCallback = async (req: Request, res: Response) => {
         }
       }
     );
-
+    console.log('[pmlCallback] tokenResp', tokenResponse.data)
     const accessToken = tokenResponse.data.access_token;
+    console.log('[pmlCallback] accessToken', accessToken)
 
     // Fetch user info
     const userResponse = await axios.get(`${pmlBaseUrl}/idp/oauth2/getUserInfo?access_token=${accessToken}&client_id=${clientId}`);
     console.log('[pmlCallback] userResponse data', userResponse.data);
-
+    if (userResponse.data.errcode) {
+      return res.status(400).send('[pmlCallback] ' + userResponse.data.errcode + ' ' + userResponse.data.msg);
+    }
     // Generate a unique code for the resource data
     const resourceCode = 'pml_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     console.log('[pmlCallback] resourceCode:', resourceCode);
@@ -100,7 +104,7 @@ export const pmlCallback = async (req: Request, res: Response) => {
 
     const query = querystring.stringify({
       code: resourceCode,
-      state: state as string,
+      state: state,
       provider: 'pml'
     });
 
@@ -119,8 +123,9 @@ export const pmlCallback = async (req: Request, res: Response) => {
 
 export const pmlResource = async (req: Request, res: Response) => {
   const { code } = req.query;
+  console.log('[pmlResource] Enter pmlResource with resource code: ' + code);
 
-  if (!code || typeof code !== 'string' || !code.startsWith('pml_') || code.length) {
+  if (!code || typeof code !== 'string' || !code.startsWith('pml_')) {
     return res.status(400).json({ error: '[pmlResource] Code parameter is required and must start with pml_' });
   }
 
