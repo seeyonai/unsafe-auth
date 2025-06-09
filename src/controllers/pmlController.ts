@@ -61,14 +61,14 @@ export const pmlCallback = async (req: Request, res: Response) => {
   try {
     // Exchange code for access token
     const tokenResponse = await axios.post(
-      `${pmlBaseUrl}/idp/oauth2/getToken`,
-      {
+      `${pmlBaseUrl}/idp/oauth2/getToken?` +
+      querystring.stringify({
         client_id: clientId,
         client_secret: clientSecret,
         grant_type: 'authorization_code',
-        code: code,
-      },
-      {
+        code: code as string,
+      }),
+      { 
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
@@ -100,7 +100,7 @@ export const pmlCallback = async (req: Request, res: Response) => {
 
     const query = querystring.stringify({
       code: resourceCode,
-      state: state,
+      state: state as string,
       provider: 'pml'
     });
 

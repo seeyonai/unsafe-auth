@@ -2,7 +2,7 @@ import querystring from 'querystring';
 import axios from 'axios';
 import { Request, Response } from 'express';
 
-require('dotenv').config();
+require('dotenv').config({path: ['.env', '.env.local']});
 
 const clientId = process.env.SEEYON_CHAT_CLIENT_ID;
 const clientSecret = process.env.SEEYON_CHAT_CLIENT_SECRET;
@@ -14,6 +14,7 @@ const stateMap = new Map<string, string>();
 const resourceMap = new Map<string, { name: string; email: string; timestamp: number }>();
 
 export const seeyonChat = (req: Request, res: Response) => {
+  console.log('seeyonChat', clientId, clientSecret);
   if (!clientId || !clientSecret) {
     throw new Error('Missing client ID or client secret');
   }
@@ -35,6 +36,7 @@ export const seeyonChat = (req: Request, res: Response) => {
   }
 
   stateMap.set(state, callbackUrl);
+  console.log('stateMap set', callbackUrl);
 
   console.log('[seeyonChat] Redirecting to Seeyon Chat for authentication');
 
