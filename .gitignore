@@ -35,6 +35,9 @@ coverage/
 # Optional eslint cache
 .eslintcache
 
+# SSL Certificates (for development)
+certs/
+
 # Misc
 .DS_Store
 Thumbs.db 
