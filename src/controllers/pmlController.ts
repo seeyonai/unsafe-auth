@@ -93,7 +93,7 @@ export const pmlCallback = async (req: Request, res: Response) => {
     // Save resource data in-memory with timestamp for cleanup
     resourceMap.set(resourceCode, {
       name: userResponse.data.loginName,
-      email: `${userResponse.data.loginName}@pml.com`,
+      email: userResponse.data.mail || `${userResponse.data.loginName}@pml.com`,
       timestamp: Date.now()
     });
 
